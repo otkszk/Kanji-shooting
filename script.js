@@ -19,28 +19,26 @@ const FILE_MAP = {
 
 const STORAGE_KEY = 'kanjiShootingHistory';
 
-let questionsAll = [];        // 全問題（{kanji, reading}）
-let questionsInPlay = [];     // 今回分
-let remaining = [];           // 残り
-let current = null;           // 現在の問題オブジェクト
+let questionsAll = [];        
+let questionsInPlay = [];     
+let remaining = [];           
+let current = null;           
 let startTime = 0;
 let timerId = null;
 let totalMs = 0;
-let yomikakiMode = "kanji";   // 'kanji' or 'reading'
+let yomikakiMode = "kanji";   
 let correctCount = 0;
 let power = 3;
-let modeType = 'fixed'; // 'fixed' or 'all'
+let modeType = 'fixed';       
 
-// 落下制御
 let animId = null;
 let fallStart = 0;
-let fallDuration = 5000;      // 1問の落下時間(ms)
+let fallDuration = 5000;      
 let fallingY = -80;
 
 // DOM helper
 const el = (id)=>document.getElementById(id);
 
-// Elements (may be null until DOMContentLoaded)
 let menu = null;
 let game = null;
 let result = null;
@@ -51,7 +49,6 @@ let lineEl = null;
 let choices = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // cache elements after DOM loaded
   menu = el('menu');
   game = el('game');
   result = el('result');
@@ -61,25 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
   lineEl = el('line');
   choices = el('choices');
 
-  // main UI buttons
   el('btn-start-from-menu')?.addEventListener('click', handleStartFromMenu);
   el('btn-show-history')?.addEventListener('click', showHistory);
   el('btn-start')?.addEventListener('click', startGameLogic);
-  el('btn-retry')?.addEventListener('click', retryGame);
-  el('btn-quit')?.addEventListener('click', quitGame);
+
+  // 結果画面から戻る
   el('btn-result-menu')?.addEventListener('click', () => switchScreen(result, menu));
   el('btn-history-back')?.addEventListener('click', () => switchScreen(historyView, menu));
 
-  // Game-over buttons: support both _over IDs and plain IDs so HTML can use either
-  const retryIds = ['btn-retry-over','btn-retry'];
-  const quitIds  = ['btn-quit-over','btn-quit'];
-  retryIds.forEach(id=>{
-    const b = el(id);
-    if (b) b.addEventListener('click', ()=>{ hideGameOver(); retryGame(); });
+  // ゲームオーバー画面のボタン
+  el('btn-retry-over')?.addEventListener('click', () => {
+    hideGameOver();
+    retryGame();
   });
-  quitIds.forEach(id=>{
-    const b = el(id);
-    if (b) b.addEventListener('click', ()=>{ hideGameOver(); switchScreen(game, menu); });
+  el('btn-quit-over')?.addEventListener('click', () => {
+    hideGameOver();
+    switchScreen(game, menu);
   });
 });
 
@@ -114,18 +108,14 @@ async function handleStartFromMenu(){
     questionsAll = Array.isArray(data) ? data : [];
     if (questionsAll.length === 0) throw new Error('問題が空です');
 
-    // ランダムに count 件を選ぶ（固定モード）
     const shuffled = [...questionsAll].sort(()=>Math.random()-0.5);
     questionsInPlay = (modeType === 'all') ? shuffled.slice() : shuffled.slice(0, count);
     remaining = [...questionsInPlay];
 
-    // UI初期化
     if (el('btn-start')) el('btn-start').disabled = false;
-    if (el('btn-retry')) el('btn-retry').disabled = true;
     if (el('timer')) el('timer').textContent = '0:00';
     resetFalling();
 
-    // 画面遷移
     switchScreen(menu, game);
   }catch(err){
     console.error(err);
@@ -143,13 +133,12 @@ function startGameLogic(){
   timerId = setInterval(updateTimer, 1000);
 
   if (el('btn-start')) el('btn-start').disabled = true;
-  if (el('btn-retry')) el('btn-retry').disabled = false;
 
   nextQuestion();
 }
 
 function retryGame(){
-  // reset power and UI for a fresh start
+  // パワーをリセット
   power = 3;
   updatePowerDisplay();
 
@@ -165,19 +154,7 @@ function retryGame(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  if (el('btn-start')) el('btn-start').disabled = true;
-  if (el('btn-retry')) el('btn-retry').disabled = false;
-
   nextQuestion();
-}
-
-async function quitGame(){
-  const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
-  if (ok){
-    if (timerId) clearInterval(timerId);
-    if (animId) cancelAnimationFrame(animId);
-    switchScreen(game, menu);
-  }
 }
 
 function updateTimer(){
@@ -238,14 +215,11 @@ function onChoose(btn, isCorrect){
       }, 400);
     });
   }else{
-    // wrong: reduce power, stop falling, show damage, then next question or game over
     power--;
     updatePowerDisplay();
     playSE('bu');
     btn.classList.add('incorrect');
     document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
-
-    // immediately stop the falling text
     stopFalling();
 
     setTimeout(()=>{
@@ -289,7 +263,6 @@ function startFalling(){
     if (t < 1){
       animId = requestAnimationFrame(step);
     }else{
-      // time up: reduce power and either game over or next
       power--;
       updatePowerDisplay();
       playSE('bu');
@@ -420,10 +393,8 @@ function updatePowerDisplay(){
     const heart = el(`heart${i}`);
     if (!heart) continue;
     if (i <= power){
-      heart.classList.remove('empty-heart');
       heart.textContent = RED_HEART;
     }else{
-      heart.classList.add('empty-heart');
       heart.textContent = WHITE_HEART;
     }
   }
@@ -431,18 +402,14 @@ function updatePowerDisplay(){
 
 /* ---- ゲームオーバー ---- */
 function showGameOver(){
-  // stop timers/animation
   if (timerId) clearInterval(timerId);
   if (animId) cancelAnimationFrame(animId);
 
   const go = el('game-over');
   if (!go) return;
-  // overlay styling & visible
   go.style.display = 'flex';
   go.style.color = 'white';
-  go.style.flexDirection = 'column';
-  go.style.alignItems = 'center';
-  // make button container horizontal if exists
+
   const btnWrap = el('game-over-buttons');
   if (btnWrap){
     btnWrap.style.display = 'flex';
