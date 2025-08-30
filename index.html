@@ -46,7 +46,17 @@
           <option value="10">１０問モード</option>
           <option value="15">１５問モード</option>
         </select>
-      </div>
+ 　　 </div>
+<div class="setting-item">
+  <label for="difficulty">なんいど:</label>
+  <select id="difficulty">
+    <option value="1">☆</option>
+    <option value="2">☆☆</option>
+    <option value="3" selected>☆☆☆</option>
+    <option value="4">☆☆☆☆</option>
+    <option value="5">☆☆☆☆☆</option>
+  </select>
+</div>
 
       <div class="button-group">
         <button id="btn-start-from-menu">スタート</button>
@@ -60,6 +70,13 @@
         <div class="header-left">
           <button id="btn-start">スタート</button>
         </div>
+　　　　<div id="power-display" style="display:flex;align-items:center;gap:6px">
+  <span style="font-weight:bold;color:#e74c3c">POWER</span>
+  <span id="heart1">❤️</span>
+  <span id="heart2">❤️</span>
+  <span id="heart3">❤️</span>
+</div>
+
         <div id="timer">0:00</div>
         <div class="header-right">
           <button id="btn-retry" disabled>リトライ</button>
@@ -107,5 +124,14 @@
   </div>
 
   <script src="script.js"></script>
+
+<div id="game-over">
+  ゲームオーバー
+  <div id="game-over-buttons">
+    <button id="btn-retry">リトライ</button>
+    <button id="btn-quit">メニューに戻る</button>
+  </div>
+</div>
+
 </body>
 </html>
