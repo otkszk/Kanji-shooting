@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   el('btn-start-from-menu').addEventListener('click',handleStartFromMenu);
   el('btn-show-history').addEventListener('click',showHistory);
   el('btn-start').addEventListener('click',startGameLogic);
+  const __btn_repeat = el('btn-repeat');
+  if (__btn_repeat) __btn_repeat.addEventListener('click', repeatReading);
   el('btn-retry').addEventListener('click',retryGame);
   el('btn-quit').addEventListener('click',quitGame);
   el('btn-result-menu').addEventListener('click',()=>switchScreen(result,menu));
@@ -56,7 +58,11 @@ async function handleStartFromMenu(){
 
     solvedCount=0;power=3;updatePowerDisplay();
 
-    el('btn-start').disabled=false;el('btn-retry').disabled=true;
+    el('btn-start').disabled=false;
+    const __btn_repeat2 = el('btn-repeat');
+    if (__btn_repeat2) __btn_repeat2.disabled = true;
+    el('btn-retry').disabled = true;
+
     document.getElementById('timer').textContent='0:00';resetFalling();
 
     const diffMap={1:1.6,2:1.3,3:1.0,4:0.8,5:0.6};
@@ -67,9 +73,18 @@ async function handleStartFromMenu(){
 }
 
 /* ---- ゲーム進行 ---- */
-function startGameLogic(){if(timerId)clearInterval(timerId);if(animId)cancelAnimationFrame(animId);
-  startTime=Date.now();updateTimer();timerId=setInterval(updateTimer,1000);
-  el('btn-start').disabled=true;el('btn-retry').disabled=false;nextQuestion();}
+function startGameLogic(){
+if(timerId)clearInterval(timerId);
+if(animId)cancelAnimationFrame(animId);
+  startTime=Date.now();
+updateTimer();
+timerId=setInterval(updateTimer,1000);
+  el('btn-start').disabled = true;
+  const __btn_repeat3 = el('btn-repeat');
+  if (__btn_repeat3) __btn_repeat3.disabled = false;
+  el('btn-retry').disabled = false;
+
+nextQuestion();}
 function retryGame(){handleStartFromMenu();}
 async function quitGame(){const ok=await showModal('ゲームを中断してメニューにもどりますか？',true);if(ok){if(timerId)clearInterval(timerId);if(animId)cancelAnimationFrame(animId);switchScreen(game,menu);}}
 
