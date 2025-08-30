@@ -178,7 +178,7 @@ function startGameLogic(){
   nextQuestion();
 }
 
-async function quitGame(){
+async function btn-quit-game(){
   const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
   if (ok){
     if (timerId) clearInterval(timerId);
@@ -498,5 +498,6 @@ function showModal(message, withCancel=false){
     if (cancel) cancel.onclick = ()=>close(false);
   });
 }
+
 
 
