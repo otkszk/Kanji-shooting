@@ -270,4 +270,231 @@ function onChoose(btn, isCorrect){
     updatePowerDisplay();
     playSE('bu');
     btn.classList.add('incorrect');
-    doc
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
+
+    // 停止してから赤いビームを返す（from = falling, to = btn）
+    stopFalling(true);
+    fireBeam(falling, btn, ()=>{
+      setTimeout(()=>{
+        btn.classList.remove('incorrect');
+        document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
+        if (power <= 0){
+          showGameOver();
+        } else {
+          nextQuestion();
+        }
+      }, 400);
+    }, false, true); // isCorrect=false, isReturn=true -> red beam
+  }
+}
+
+/* ---- 落下アニメーション ---- */
+function resetFalling(){
+  if (!falling) return;
+  falling.textContent = '';
+  falling.style.top = '-80px';
+  fallingY = -80;
+}
+
+function startFalling(){
+  if (!falling || !playfield || !current) return;
+  falling.textContent = yomikakiMode === 'kanji' ? current.kanji : current.reading;
+  fallingY = -80;
+  fallStart = performance.now();
+  const diffEl = el('difficulty');
+  const difficulty = diffEl ? parseInt(diffEl.value) : 3;
+  fallDuration = 6000 - difficulty * 1000;
+
+  animId = requestAnimationFrame(step);
+  function step(now){
+    const t = Math.min(1, (now - fallStart) / fallDuration);
+    const fieldH = playfield.clientHeight;
+    const targetY = fieldH - 160;
+    fallingY = -80 + (targetY + 80) * t;
+    falling.style.top = `${fallingY}px`;
+
+    if (t < 1){
+      animId = requestAnimationFrame(step);
+    } else {
+      // time up: ダメージして次へ
+      power--;
+      updatePowerDisplay();
+      playSE('bu');
+      stopFalling(true);
+      if (power <= 0){
+        showGameOver();
+      } else {
+        setTimeout(()=> nextQuestion(), 250);
+      }
+    }
+  }
+}
+
+function stopFalling(reset = true){
+  if (animId) cancelAnimationFrame(animId);
+  animId = null;
+  if (reset) resetFalling();
+}
+
+/* ---- ビーム演出 ----
+   fireBeam(fromEl, toEl, onEnd, isCorrect=true, isReturn=false)
+*/
+function fireBeam(fromEl, toEl, onEnd, isCorrect = true, isReturn = false){
+  if (!fromEl || !toEl){ if (onEnd) onEnd(); return; }
+  const fromRect = fromEl.getBoundingClientRect();
+  const toRect = toEl.getBoundingClientRect();
+
+  const x1 = fromRect.left + fromRect.width/2;
+  const y1 = fromRect.top + fromRect.height/2;
+  const x2 = toRect.left + toRect.width/2;
+  const y2 = toRect.top + toRect.height/2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+  const beam = document.createElement('div');
+  beam.className = 'beam';
+  beam.style.position = 'fixed';
+  beam.style.transformOrigin = '0 50%';
+  beam.style.left = `${x1}px`;
+  beam.style.top = `${y1}px`;
+  beam.style.width = `0px`;
+  beam.style.height = '6px';
+  beam.style.transform = `rotate(${angle}deg)`;
+  beam.style.background = isReturn ? 'red' : 'cyan';
+  beam.style.zIndex = 9999;
+  document.body.appendChild(beam);
+
+  const start = performance.now();
+  const duration = 160;
+  function grow(now){
+    const t = Math.min(1, (now - start) / duration);
+    beam.style.width = `${len * t}px`;
+    if (t < 1){
+      requestAnimationFrame(grow);
+    } else {
+      setTimeout(()=>{
+        beam.remove();
+        if (onEnd) onEnd();
+      }, 80);
+    }
+  }
+  requestAnimationFrame(grow);
+}
+
+/* ---- 終了と記録 ---- */
+function finishGame(){
+  if (timerId) clearInterval(timerId);
+  totalMs = Date.now() - startTime;
+  if (el('final-time')) el('final-time').textContent = `タイム: ${formatMs(totalMs)}`;
+
+  makeResultTable();
+  switchScreen(game, result);
+}
+
+function formatMs(ms){
+  const m = Math.floor(ms/60000);
+  const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+function buildCurrentRecord(){
+  const setLabel = el('grade-set') ? el('grade-set').options[el('grade-set').selectedIndex].text : '';
+  const yomikakiLabel = el('yomikaki') ? (el('yomikaki').value === 'kanji' ? 'かんじ' : 'よみがな') : '';
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  return { date: dateStr, yomikaki: yomikakiLabel, gradeSet: setLabel, timeMs: totalMs };
+}
+
+function loadHistory(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+function makeResultTable(){
+  const rec = buildCurrentRecord();
+  const history = loadHistory();
+  const merged = [rec, ...history];
+  merged.sort((a,b)=>a.timeMs - b.timeMs);
+  const top10 = merged.slice(0,10);
+  saveHistory(top10);
+  const html = renderTable(top10);
+  const container = el('result-table-container');
+  if (container) container.innerHTML = html;
+}
+
+function showHistory(){
+  const historyArr = loadHistory() || [];
+  historyArr.sort((a,b)=>a.timeMs - b.timeMs);
+  const container = el('history-table-container');
+  if (container) container.innerHTML = renderTable(historyArr);
+  if (menu && historyView) switchScreen(menu, historyView);
+}
+
+function renderTable(rows){
+  if (!rows || rows.length === 0) return '<p>まだ記録がありません。</p>';
+  const tr = rows.map((r,i)=>{
+    return `<tr><td>${i+1}</td><td>${r.date}</td><td>${r.yomikaki}</td><td>${r.gradeSet}</td><td>${formatMs(r.timeMs)}</td></tr>`;
+  }).join('');
+  return `<div class="table-wrap"><table><thead><tr><th>順位</th><th>日付</th><th>読み書き</th><th>学年とセット</th><th>タイム</th></tr></thead><tbody>${tr}</tbody></table></div>`;
+}
+
+/* ---- 効果音 ---- */
+function playSE(name){
+  try{ new Audio(`sounds/${name}.mp3`).play(); }catch{}
+}
+
+/* ---- パワー表示 ---- */
+function updatePowerDisplay(){
+  const RED_HEART = "\u2764\uFE0F";
+  const WHITE = "\u2661";
+  for (let i = 1; i <= 3; i++){
+    const h = el(`heart${i}`);
+    if (!h) continue;
+    h.textContent = (i <= power) ? RED_HEART : WHITE;
+    if (i <= power) h.classList.remove('empty-heart'); else h.classList.add('empty-heart');
+  }
+}
+
+/* ---- ゲームオーバー ---- */
+function showGameOver(){
+  if (timerId) clearInterval(timerId);
+  if (animId) cancelAnimationFrame(animId);
+
+  const go = el('game-over');
+  if (!go) return;
+  go.style.display = 'flex';
+  go.style.color = 'white';
+  go.style.flexDirection = 'column';
+  go.style.alignItems = 'center';
+
+  const btnWrap = el('game-over-buttons');
+  if (btnWrap){
+    btnWrap.style.display = 'flex';
+    btnWrap.style.flexDirection = 'row';
+    btnWrap.style.justifyContent = 'center';
+    btnWrap.style.gap = '20px';
+  }
+}
+
+function hideGameOver(){
+  const go = el('game-over');
+  if (go) go.style.display = 'none';
+}
+
+/* ---- モーダル ---- */
+function showModal(message, withCancel=false){
+  const modal = el('modal');
+  const ok = el('modal-ok');
+  const cancel = el('modal-cancel');
+  const msgEl = el('modal-message');
+  if (msgEl) msgEl.textContent = message;
+  if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
+  if (modal) modal.style.display = 'flex';
+  return new Promise(resolve=>{
+    const close = (val)=>{ if (modal) modal.style.display='none'; if (ok) ok.onclick=null; if (cancel) cancel.onclick=null; resolve(val); };
+    if (ok) ok.onclick = ()=>close(true);
+    if (cancel) cancel.onclick = ()=>close(false);
+  });
+}
