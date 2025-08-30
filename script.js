@@ -251,9 +251,14 @@ function startFalling(){
       animId = requestAnimationFrame(step);
     }else{
       // 間に合わなかった場合
-      playSE('bu');
-      stopFalling();
-      setTimeout(()=> nextQuestion(), 250);
+     updatePowerDisplay();
+  playSE('bu');
+  stopFalling();
+
+  if (power <= 0){
+    showGameOver();
+  } else {
+    setTimeout(()=> nextQuestion(), 250);
     }
   }
 }
