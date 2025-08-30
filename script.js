@@ -37,44 +37,69 @@ let fallStart = 0;
 let fallDuration = 5000;      // 1問の落下時間(ms)
 let fallingY = -80;
 
-// DOM
+// DOM helper
 const el = (id)=>document.getElementById(id);
-const menu = el('menu');
-const game = el('game');
-const result = el('result');
-const historyView = el('history');
 
-const playfield = el('playfield');
-const falling = el('falling');
-const lineEl = el('line');
-const choices = el('choices');
+// Elements (may be null until DOMContentLoaded)
+let menu = null;
+let game = null;
+let result = null;
+let historyView = null;
+let playfield = null;
+let falling = null;
+let lineEl = null;
+let choices = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  el('btn-start-from-menu').addEventListener('click', handleStartFromMenu);
-  el('btn-show-history').addEventListener('click', showHistory);
-  el('btn-start').addEventListener('click', startGameLogic);
-  el('btn-retry').addEventListener('click', retryGame);
-  el('btn-quit').addEventListener('click', quitGame);
-  el('btn-result-menu').addEventListener('click', () => switchScreen(result, menu));
-  el('btn-history-back').addEventListener('click', () => switchScreen(historyView, menu));
+  // cache elements after DOM loaded
+  menu = el('menu');
+  game = el('game');
+  result = el('result');
+  historyView = el('history');
+  playfield = el('playfield');
+  falling = el('falling');
+  lineEl = el('line');
+  choices = el('choices');
+
+  // main UI buttons
+  el('btn-start-from-menu')?.addEventListener('click', handleStartFromMenu);
+  el('btn-show-history')?.addEventListener('click', showHistory);
+  el('btn-start')?.addEventListener('click', startGameLogic);
+  el('btn-retry')?.addEventListener('click', retryGame);
+  el('btn-quit')?.addEventListener('click', quitGame);
+  el('btn-result-menu')?.addEventListener('click', () => switchScreen(result, menu));
+  el('btn-history-back')?.addEventListener('click', () => switchScreen(historyView, menu));
+
+  // Game-over buttons: support both _over IDs and plain IDs so HTML can use either
+  const retryIds = ['btn-retry-over','btn-retry'];
+  const quitIds  = ['btn-quit-over','btn-quit'];
+  retryIds.forEach(id=>{
+    const b = el(id);
+    if (b) b.addEventListener('click', ()=>{ hideGameOver(); retryGame(); });
+  });
+  quitIds.forEach(id=>{
+    const b = el(id);
+    if (b) b.addEventListener('click', ()=>{ hideGameOver(); switchScreen(game, menu); });
+  });
 });
 
+/* ---------------- UI / Screen ---------------- */
 function switchScreen(hide, show){
-  hide.style.display = 'none';
-  show.style.display = 'flex';
+  if (hide) hide.style.display = 'none';
+  if (show) show.style.display = 'flex';
 }
 
 /* ---- メニューから開始 ---- */
 async function handleStartFromMenu(){
-  const modeVal = document.getElementById('mode').value;
+  const modeVal = el('mode') ? el('mode').value : '5';
   modeType = modeVal === 'all' ? 'all' : 'fixed';
   correctCount = 0;
   power = 3;
   updatePowerDisplay();
 
-  const setKey = el('grade-set').value;
-  const count = parseInt(el('mode').value,10);
-  yomikakiMode = el('yomikaki').value; // 'kanji' or 'reading'
+  const setKey = el('grade-set') ? el('grade-set').value : '';
+  const count = parseInt(el('mode') ? el('mode').value : '5',10);
+  yomikakiMode = el('yomikaki') ? el('yomikaki').value : 'kanji';
 
   if (!setKey){
     await showModal('学年とセットを選んでください');
@@ -89,18 +114,15 @@ async function handleStartFromMenu(){
     questionsAll = Array.isArray(data) ? data : [];
     if (questionsAll.length === 0) throw new Error('問題が空です');
 
-    // ランダムに count 件を選ぶ
+    // ランダムに count 件を選ぶ（固定モード）
     const shuffled = [...questionsAll].sort(()=>Math.random()-0.5);
-    questionsInPlay = shuffled.slice(0, count);
+    questionsInPlay = (modeType === 'all') ? shuffled.slice() : shuffled.slice(0, count);
     remaining = [...questionsInPlay];
 
     // UI初期化
-    const btnStart = el('btn-start');
-    if (btnStart) btnStart.disabled = false;
-    const btnRetry = el('btn-retry');
-    if (btnRetry) btnRetry.disabled = true;
-    const timerEl = document.getElementById('timer');
-    if (timerEl) timerEl.textContent = '0:00';
+    if (el('btn-start')) el('btn-start').disabled = false;
+    if (el('btn-retry')) el('btn-retry').disabled = true;
+    if (el('timer')) el('timer').textContent = '0:00';
     resetFalling();
 
     // 画面遷移
@@ -120,21 +142,20 @@ function startGameLogic(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  const btnStart = el('btn-start');
-  if (btnStart) btnStart.disabled = true;
-  const btnRetry = el('btn-retry');
-  if (btnRetry) btnRetry.disabled = false;
+  if (el('btn-start')) el('btn-start').disabled = true;
+  if (el('btn-retry')) el('btn-retry').disabled = false;
 
   nextQuestion();
 }
 
 function retryGame(){
-  power = 3;  // パワーをリセット
+  // reset power and UI for a fresh start
+  power = 3;
   updatePowerDisplay();
 
-  const count = parseInt(el('mode').value,10);
+  const count = parseInt(el('mode') ? el('mode').value : '5',10);
   const shuffled = [...questionsAll].sort(()=>Math.random()-0.5);
-  questionsInPlay = shuffled.slice(0, count);
+  questionsInPlay = (modeType === 'all') ? shuffled.slice() : shuffled.slice(0, count);
   remaining = [...questionsInPlay];
 
   if (timerId) clearInterval(timerId);
@@ -144,10 +165,8 @@ function retryGame(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  const btnStart = el('btn-start');
-  if (btnStart) btnStart.disabled = true;
-  const btnRetry = el('btn-retry');
-  if (btnRetry) btnRetry.disabled = false;
+  if (el('btn-start')) el('btn-start').disabled = true;
+  if (el('btn-retry')) el('btn-retry').disabled = false;
 
   nextQuestion();
 }
@@ -165,21 +184,22 @@ function updateTimer(){
   const ms = Date.now() - startTime;
   const m = Math.floor(ms/60000);
   const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-  const timerEl = el('timer');
-  if (timerEl) timerEl.textContent = `${m}:${s}`;
+  if (el('timer')) el('timer').textContent = `${m}:${s}`;
 }
 
+/* ---- 問題の流れ ---- */
 function nextQuestion(){
-  if (remaining.length===0){
+  if (!remaining || remaining.length===0){
     finishGame();
     return;
   }
-  current = remaining.shift();        // 先頭から出題
-  buildChoices();                     // 3択更新
-  startFalling();                     // 落下開始
+  current = remaining.shift();
+  buildChoices();
+  startFalling();
 }
 
 function buildChoices(){
+  if (!choices || !current) return;
   const correctLabel = yomikakiMode === 'kanji' ? current.reading : current.kanji;
   const pool = questionsAll.filter(q => q !== current);
   const shuffled = pool.sort(()=>Math.random()-0.5).slice(0, 10);
@@ -191,7 +211,6 @@ function buildChoices(){
   }
   const items = [correctLabel, ...wrongs].sort(()=>Math.random()-0.5);
 
-  if (!choices) return;
   choices.innerHTML = '';
   items.forEach((label)=>{
     const btn = document.createElement('button');
@@ -202,6 +221,7 @@ function buildChoices(){
   });
 }
 
+/* ---- 選択時の挙動 ---- */
 function onChoose(btn, isCorrect){
   document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
@@ -218,13 +238,14 @@ function onChoose(btn, isCorrect){
       }, 400);
     });
   }else{
+    // wrong: reduce power, stop falling, show damage, then next question or game over
     power--;
     updatePowerDisplay();
     playSE('bu');
     btn.classList.add('incorrect');
     document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
 
-    // 🔹 落下を即停止して次の問題へ
+    // immediately stop the falling text
     stopFalling();
 
     setTimeout(()=>{
@@ -249,11 +270,11 @@ function resetFalling(){
 }
 
 function startFalling(){
-  if (!falling || !playfield) return;
+  if (!falling || !playfield || !current) return;
   falling.textContent = yomikakiMode === 'kanji' ? current.kanji : current.reading;
   fallingY = -80;
   fallStart = performance.now();
-  const diffEl = document.getElementById('difficulty');
+  const diffEl = el('difficulty');
   const difficulty = diffEl ? parseInt(diffEl.value) : 3;
   fallDuration = 6000 - difficulty * 1000;
 
@@ -261,14 +282,14 @@ function startFalling(){
   function step(now){
     const t = Math.min(1, (now - fallStart) / fallDuration);
     const fieldH = playfield.clientHeight;
-    const targetY = fieldH - 160; 
+    const targetY = fieldH - 160;
     fallingY = -80 + (targetY + 80) * t;
     falling.style.top = `${fallingY}px`;
 
     if (t < 1){
       animId = requestAnimationFrame(step);
     }else{
-      // 間に合わなかった場合
+      // time up: reduce power and either game over or next
       power--;
       updatePowerDisplay();
       playSE('bu');
@@ -291,7 +312,7 @@ function stopFalling(){
 
 /* ---- ビーム演出 ---- */
 function fireBeam(fromBtn, toEl, onEnd){
-  if (!fromBtn || !toEl) { if (onEnd) onEnd(); return; }
+  if (!fromBtn || !toEl){ if (onEnd) onEnd(); return; }
   const fromRect = fromBtn.getBoundingClientRect();
   const toRect = toEl.getBoundingClientRect();
 
@@ -336,8 +357,7 @@ function finishGame(){
 
   const m = Math.floor(totalMs/60000);
   const s = Math.floor((totalMs%60000)/1000).toString().padStart(2,'0');
-  const finalEl = el('final-time');
-  if (finalEl) finalEl.textContent = `タイム: ${m}:${s}`;
+  if (el('final-time')) el('final-time').textContent = `タイム: ${m}:${s}`;
 
   makeResultTable();
   switchScreen(game, result);
@@ -352,14 +372,9 @@ function buildCurrentRecord(){
 }
 
 function loadHistory(){
-  try{
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  }catch{ return []; }
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch{ return []; }
 }
-
-function saveHistory(arr){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-}
+function saveHistory(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
 
 function makeResultTable(){
   const rec = buildCurrentRecord();
@@ -370,22 +385,20 @@ function makeResultTable(){
   saveHistory(top10);
 
   const html = renderTable(top10);
-  const resultContainer = document.getElementById('result-table-container');
+  const resultContainer = el('result-table-container');
   if (resultContainer) resultContainer.innerHTML = html;
 }
 
 function showHistory(){
   const history = loadHistory();
   history.sort((a,b)=>a.timeMs-b.timeMs);
-  const histEl = document.getElementById('history-table-container');
+  const histEl = el('history-table-container');
   if (histEl) histEl.innerHTML = renderTable(history);
   switchScreen(menu, historyView);
 }
 
 function renderTable(rows){
-  if (!rows || rows.length===0){
-    return '<p>まだ記録がありません。</p>';
-  }
+  if (!rows || rows.length===0) return '<p>まだ記録がありません。</p>';
   const tr = rows.map((r,i)=>{
     const m = Math.floor(r.timeMs/60000);
     const s = Math.floor((r.timeMs%60000)/1000).toString().padStart(2,'0');
@@ -401,11 +414,10 @@ function playSE(name){
 
 /* ---- パワー表示 ---- */
 function updatePowerDisplay(){
-  const RED_HEART = "\u2764\uFE0F";       // ❤️
-  const WHITE_HEART = "\uD83E\uDD0D";     // 🤍
-
+  const RED_HEART = "\u2764\uFE0F";
+  const WHITE_HEART = "\u2661";
   for (let i = 1; i <= 3; i++){
-    const heart = document.getElementById(`heart${i}`);
+    const heart = el(`heart${i}`);
     if (!heart) continue;
     if (i <= power){
       heart.classList.remove('empty-heart');
@@ -417,38 +429,40 @@ function updatePowerDisplay(){
   }
 }
 
+/* ---- ゲームオーバー ---- */
 function showGameOver(){
-  const go = document.getElementById('game-over');
-  if (go) go.style.display = 'flex';
+  // stop timers/animation
+  if (timerId) clearInterval(timerId);
+  if (animId) cancelAnimationFrame(animId);
+
+  const go = el('game-over');
+  if (!go) return;
+  // overlay styling & visible
+  go.style.display = 'flex';
+  go.style.color = 'white';
+  go.style.flexDirection = 'column';
+  go.style.alignItems = 'center';
+  // make button container horizontal if exists
+  const btnWrap = el('game-over-buttons');
+  if (btnWrap){
+    btnWrap.style.display = 'flex';
+    btnWrap.style.flexDirection = 'row';
+    btnWrap.style.justifyContent = 'center';
+    btnWrap.style.gap = '16px';
+  }
 }
 
 function hideGameOver(){
-  const go = document.getElementById('game-over');
+  const go = el('game-over');
   if (go) go.style.display = 'none';
-}
-
-// ボタンイベント
-const btnRetryElem = document.getElementById('btn-retry');
-if (btnRetryElem) {
-  btnRetryElem.addEventListener('click', ()=>{
-    hideGameOver();
-    retryGame();
-  });
-}
-const btnQuitElem = document.getElementById('btn-quit');
-if (btnQuitElem) {
-  btnQuitElem.addEventListener('click', ()=>{
-    hideGameOver();
-    switchScreen(game, menu);
-  });
 }
 
 /* ---- モーダル ---- */
 function showModal(message, withCancel=false){
-  const modal = document.getElementById('modal');
-  const ok = document.getElementById('modal-ok');
-  const cancel = document.getElementById('modal-cancel');
-  const msgEl = document.getElementById('modal-message');
+  const modal = el('modal');
+  const ok = el('modal-ok');
+  const cancel = el('modal-cancel');
+  const msgEl = el('modal-message');
   if (msgEl) msgEl.textContent = message;
   if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
   if (modal) modal.style.display = 'flex';
