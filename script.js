@@ -45,14 +45,37 @@ async function handleStartFromMenu() {
 
   if (!setKey) { await showModal('学年とセットを選んでください'); return; }
 
+   
+  // 1. GitHub Pagesのリポジトリ名を考慮して、ベースとなるパスを自動で決定します
+  const isRepoPage = window.location.pathname.split('/')[1] && window.location.hostname.includes('github.io');
+  const basePath = isRepoPage ? `/${window.location.pathname.split('/')[1]}` : '';
+
+  const filename = FILE_MAP[setKey];
+  // 2. ベースパスを元に、JSONファイルへの完全なURLを組み立てます
+  const fileUrl = `${window.location.origin}${basePath}/data/${filename}`;
+
+  // 開発者ツールで、どのURLを読み込もうとしているか確認できるようにログを出力します
+  console.log(`読み込み試行中のURL: ${fileUrl}`);
+
   try {
-    const filename = FILE_MAP[setKey] || `${setKey}.json`;
-    const res = await fetch(`./data/${filename}`);
-    if (!res.ok) throw new Error(`${filename} の読み込みに失敗しました`);
+    // 3. 組み立てたURLを使ってデータを取得します
+    const res = await fetch(fileUrl);
+
+    // 4. 通信が成功したか（ファイルが見つかったか）をチェックします
+    if (!res.ok) {
+      // res.status には 404 (見つからない) などの数字が入ります
+      throw new Error(`サーバーからの応答が正常ではありませんでした (HTTPステータス: ${res.status})`);
+    }
+
     const data = await res.json();
-    questionsAll = Array.isArray(data) ? data : [];
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('JSONデータが空、または正しい配列形式ではありません。');
+    }
+     
+     questionsAll = Array.isArray(data) ? data : [];
     if (questionsAll.length === 0) throw new Error('問題が空です');
 
+   
     if (modeVal === "all") {
       goalCount = questionsAll.length;
       questionsInPlay = questionsAll.map(q => ({ q, solved: false }));
@@ -313,5 +336,6 @@ function showModal(message, showCancel = false) {
         el('modal-cancel').onclick = () => { el('modal').style.display = 'none'; resolve(false); };
     });
 }
+
 
 
