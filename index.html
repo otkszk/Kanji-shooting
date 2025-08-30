@@ -9,10 +9,9 @@
 <body>
   <div id="app">
     <!-- メニュー画面 -->
-    <div  class="screen" id="menu">
+    <div id="menu" class="screen" >
       <h1>全学年漢字まとめくん読みシューティング</h1>
       <img src="images/TOP.jpg" alt="トップ画像" class="top-image">
-　　　</div>
       <div class="setting-item">
         <label for="grade-set">学年とセット</label>
         <select id="grade-set" aria-label="学年とセット">
@@ -66,7 +65,7 @@
     </div>
 
     <!-- ゲーム画面 -->
-    <div  class="screen" id="game" style="display:none;">
+    <div id="game" class="screen" style="display:none;">
       <header class="game-header">
         <div class="header-left">
           <button id="btn-start">スタート</button>
@@ -94,6 +93,16 @@
         <!-- 3択ボタンをJSで生成 -->
       </div>
     </div>
+
+
+<div id="game-over">
+  ゲームオーバー
+  <div id="game-over-buttons">
+    <button id="btn-retry">リトライ</button>
+    <button id="btn-quit">メニューに戻る</button>
+  </div>
+</div>
+
 
     <!-- 結果画面 -->
     <div id="result" class="screen" style="display:none;">
@@ -125,14 +134,5 @@
   </div>
 
   <script src="script.js"></script>
-
-<div id="game-over">
-  ゲームオーバー
-  <div id="game-over-buttons">
-    <button id="btn-retry">リトライ</button>
-    <button id="btn-quit">メニューに戻る</button>
-  </div>
-</div>
-
 </body>
 </html>
