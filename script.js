@@ -421,4 +421,3 @@ function showModal(message, withCancel=false){
     cancel.onclick = ()=>close(false);
   });
 }
-}
