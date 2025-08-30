@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
   el('btn-show-history')?.addEventListener('click', showHistory);
   el('btn-start')?.addEventListener('click', startGameLogic);
 
+  // 「中断してメニューに戻る」ボタン
+  el('btn-quit-game')?.addEventListener('click', quitGame);
+
   // 結果画面から戻る
   el('btn-result-menu')?.addEventListener('click', () => switchScreen(result, menu));
   el('btn-history-back')?.addEventListener('click', () => switchScreen(historyView, menu));
@@ -137,8 +140,16 @@ function startGameLogic(){
   nextQuestion();
 }
 
+async function quitGame(){
+  const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
+  if (ok){
+    if (timerId) clearInterval(timerId);
+    if (animId) cancelAnimationFrame(animId);
+    switchScreen(game, menu);
+  }
+}
+
 function retryGame(){
-  // パワーをリセット
   power = 3;
   updatePowerDisplay();
 
@@ -208,30 +219,32 @@ function onChoose(btn, isCorrect){
     if (falling) falling.classList.add('falling-correct');
     playSE('pinpon');
     fireBeam(btn, falling, ()=>{
-      stopFalling();
+      stopFalling(false);  // ← 修正: 正解時はリセットしない
       setTimeout(()=>{
         if (falling) falling.classList.remove('falling-correct');
         nextQuestion();
       }, 400);
-    });
+    }, true);
   }else{
     power--;
     updatePowerDisplay();
     playSE('bu');
     btn.classList.add('incorrect');
     document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
-    stopFalling();
+    stopFalling(true);
 
-    setTimeout(()=>{
-      btn.classList.remove('incorrect');
-      document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
-
-      if (power <= 0){
-        showGameOver();
-      } else {
-        nextQuestion();
-      }
-    }, 400);
+    // 赤いビームを返す
+    fireBeam(falling, btn, ()=>{
+      setTimeout(()=>{
+        btn.classList.remove('incorrect');
+        document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
+        if (power <= 0){
+          showGameOver();
+        } else {
+          nextQuestion();
+        }
+      }, 400);
+    }, false, true);
   }
 }
 
@@ -266,7 +279,7 @@ function startFalling(){
       power--;
       updatePowerDisplay();
       playSE('bu');
-      stopFalling();
+      stopFalling(true);
 
       if (power <= 0){
         showGameOver();
@@ -277,16 +290,16 @@ function startFalling(){
   }
 }
 
-function stopFalling(){
+function stopFalling(reset=true){
   if (animId) cancelAnimationFrame(animId);
   animId = null;
-  resetFalling();
+  if (reset) resetFalling();
 }
 
 /* ---- ビーム演出 ---- */
-function fireBeam(fromBtn, toEl, onEnd){
-  if (!fromBtn || !toEl){ if (onEnd) onEnd(); return; }
-  const fromRect = fromBtn.getBoundingClientRect();
+function fireBeam(fromEl, toEl, onEnd, isCorrect=true, isReturn=false){
+  if (!fromEl || !toEl){ if (onEnd) onEnd(); return; }
+  const fromRect = fromEl.getBoundingClientRect();
   const toRect = toEl.getBoundingClientRect();
 
   const x1 = fromRect.left + fromRect.width/2;
@@ -304,6 +317,7 @@ function fireBeam(fromBtn, toEl, onEnd){
   beam.style.top = `${y1}px`;
   beam.style.width = `0px`;
   beam.style.transform = `rotate(${angle}deg)`;
+  beam.style.background = isReturn ? 'red' : 'cyan'; // 赤ビーム追加
   document.body.appendChild(beam);
 
   let start = performance.now();
@@ -321,121 +335,4 @@ function fireBeam(fromBtn, toEl, onEnd){
     }
   }
   requestAnimationFrame(grow);
-}
-
-/* ---- 終了と記録 ---- */
-function finishGame(){
-  if (timerId) clearInterval(timerId);
-  totalMs = Date.now() - startTime;
-
-  const m = Math.floor(totalMs/60000);
-  const s = Math.floor((totalMs%60000)/1000).toString().padStart(2,'0');
-  if (el('final-time')) el('final-time').textContent = `タイム: ${m}:${s}`;
-
-  makeResultTable();
-  switchScreen(game, result);
-}
-
-function buildCurrentRecord(){
-  const setLabel = el('grade-set').options[el('grade-set').selectedIndex].text;
-  const yomikakiLabel = el('yomikaki').value === 'kanji' ? 'かんじ' : 'よみがな';
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  return { date: dateStr, yomikaki: yomikakiLabel, gradeSet: setLabel, timeMs: totalMs };
-}
-
-function loadHistory(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch{ return []; }
-}
-function saveHistory(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
-
-function makeResultTable(){
-  const rec = buildCurrentRecord();
-  const history = loadHistory();
-  const merged = [rec, ...history];
-  merged.sort((a,b)=>a.timeMs-b.timeMs);
-  const top10 = merged.slice(0,10);
-  saveHistory(top10);
-
-  const html = renderTable(top10);
-  const resultContainer = el('result-table-container');
-  if (resultContainer) resultContainer.innerHTML = html;
-}
-
-function showHistory(){
-  const history = loadHistory();
-  history.sort((a,b)=>a.timeMs-b.timeMs);
-  const histEl = el('history-table-container');
-  if (histEl) histEl.innerHTML = renderTable(history);
-  switchScreen(menu, historyView);
-}
-
-function renderTable(rows){
-  if (!rows || rows.length===0) return '<p>まだ記録がありません。</p>';
-  const tr = rows.map((r,i)=>{
-    const m = Math.floor(r.timeMs/60000);
-    const s = Math.floor((r.timeMs%60000)/1000).toString().padStart(2,'0');
-    return `<tr><td>${i+1}</td><td>${r.date}</td><td>${r.yomikaki}</td><td>${r.gradeSet}</td><td>${m}:${s}</td></tr>`;
-  }).join('');
-  return `<div class="table-wrap"><table><thead><tr><th>順位</th><th>日付</th><th>読み書き</th><th>学年とセット</th><th>タイム</th></tr></thead><tbody>${tr}</tbody></table></div>`;
-}
-
-/* ---- 効果音 ---- */
-function playSE(name){
-  try{ new Audio(`sounds/${name}.mp3`).play(); }catch{}
-}
-
-/* ---- パワー表示 ---- */
-function updatePowerDisplay(){
-  const RED_HEART = "\u2764\uFE0F";
-  const WHITE_HEART = "\u2661";
-  for (let i = 1; i <= 3; i++){
-    const heart = el(`heart${i}`);
-    if (!heart) continue;
-    if (i <= power){
-      heart.textContent = RED_HEART;
-    }else{
-      heart.textContent = WHITE_HEART;
-    }
-  }
-}
-
-/* ---- ゲームオーバー ---- */
-function showGameOver(){
-  if (timerId) clearInterval(timerId);
-  if (animId) cancelAnimationFrame(animId);
-
-  const go = el('game-over');
-  if (!go) return;
-  go.style.display = 'flex';
-  go.style.color = 'white';
-
-  const btnWrap = el('game-over-buttons');
-  if (btnWrap){
-    btnWrap.style.display = 'flex';
-    btnWrap.style.flexDirection = 'row';
-    btnWrap.style.justifyContent = 'center';
-    btnWrap.style.gap = '16px';
-  }
-}
-
-function hideGameOver(){
-  const go = el('game-over');
-  if (go) go.style.display = 'none';
-}
-
-/* ---- モーダル ---- */
-function showModal(message, withCancel=false){
-  const modal = el('modal');
-  const ok = el('modal-ok');
-  const cancel = el('modal-cancel');
-  const msgEl = el('modal-message');
-  if (msgEl) msgEl.textContent = message;
-  if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
-  if (modal) modal.style.display = 'flex';
-  return new Promise(resolve=>{
-    const close = (val)=>{ if (modal) modal.style.display='none'; if (ok) ok.onclick=null; if (cancel) cancel.onclick=null; resolve(val); };
-    if (ok) ok.onclick = ()=>close(true);
-    if (cancel) cancel.onclick = ()=>close(false);
-  });
 }
