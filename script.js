@@ -169,9 +169,7 @@ function nextQuestion(){
 }
 
 function buildChoices(){
-  // 正解候補
   const correctLabel = yomikakiMode === 'kanji' ? current.reading : current.kanji;
-  // 不正解候補を2つ作成
   const pool = questionsAll.filter(q => q !== current);
   const shuffled = pool.sort(()=>Math.random()-0.5).slice(0, 10);
   const wrongs = [];
@@ -182,9 +180,8 @@ function buildChoices(){
   }
   const items = [correctLabel, ...wrongs].sort(()=>Math.random()-0.5);
 
-  // ボタン生成
   choices.innerHTML = '';
-  items.forEach((label, idx)=>{
+  items.forEach((label)=>{
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.textContent = label;
@@ -223,7 +220,7 @@ function onChoose(btn, isCorrect){
       showGameOver();
     }
   }
-} // ← 閉じカッコを追加
+}
 
 /* ---- 落下アニメーション ---- */
 function resetFalling(){
@@ -251,17 +248,19 @@ function startFalling(){
       animId = requestAnimationFrame(step);
     }else{
       // 間に合わなかった場合
-     updatePowerDisplay();
-  playSE('bu');
-  stopFalling();
+      power--;                         // ★ パワーを減らす
+      updatePowerDisplay();
+      playSE('bu');
+      stopFalling();
 
-  if (power <= 0){
-    showGameOver();
-  } else {
-    setTimeout(()=> nextQuestion(), 250);
+      if (power <= 0){
+        showGameOver();
+      } else {
+        setTimeout(()=> nextQuestion(), 250);
+      }
     }
-  }
-}
+  } // step を閉じる
+}   // startFalling を閉じる
 
 function stopFalling(){
   if (animId) cancelAnimationFrame(animId);
@@ -381,7 +380,7 @@ function updatePowerDisplay(){
     const heart = document.getElementById(`heart${i}`);
     if (i <= power){
       heart.classList.remove('empty-heart');
-      heart.textContent = '❤️';
+      heart.textContent = ❤️';
     }else{
       heart.classList.add('empty-heart');
       heart.textContent = '🤍';
