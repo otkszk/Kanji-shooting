@@ -96,12 +96,13 @@
 
 
     <!-- ゲームオーバー画面 -->
-<div id="game-over" style="display:none; flex-direction:column; align-items:center; justify-content:center;">
-  <h2>ゲームオーバー</h2>
-  <button id="btn-retry">リトライ</button>
-  <button id="btn-quit">メニューにもどる</button>
-</div>
-
+<div id="gameover" class="gameover" style="display:none;">
+      <h1>ゲームオーバー</h1>
+      <div class="button-group">
+        <button id="btn-gameover-retry">リトライ</button>
+        <button id="btn-gameover-menu">メニューに戻る</button>
+      </div>
+    </div>
 
     <!-- 結果画面 -->
     <div id="result" class="screen" style="display:none;">
@@ -135,4 +136,5 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
