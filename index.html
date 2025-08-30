@@ -45,18 +45,6 @@
           <option value="5">５問モード</option>
           <option value="10">１０問モード</option>
           <option value="15">１５問モード</option>
-          <option value="all">全問モード</option>
-        </select>
-      </div>
-
-      <div class="setting-item">
-        <label>なんいど</label>
-        <select id="difficulty" aria-label="なんいど">
-          <option value="1">☆</option>
-          <option value="2">☆☆</option>
-          <option value="3" selected>☆☆☆</option>
-          <option value="4">☆☆☆☆</option>
-          <option value="5">☆☆☆☆☆</option>
         </select>
       </div>
 
@@ -71,9 +59,6 @@
       <header class="game-header">
         <div class="header-left">
           <button id="btn-start">スタート</button>
-          <div id="power-display">
-            POWER <span class="heart full">♥</span><span class="heart full">♥</span><span class="heart full">♥</span>
-          </div>
         </div>
         <div id="timer">0:00</div>
         <div class="header-right">
@@ -87,15 +72,8 @@
         <div id="line"></div>
       </div>
 
-      <div id="choices" class="choices"></div>
-    </div>
-
-    <!-- ゲームオーバー画面 -->
-    <div id="gameover" class="gameover" style="display:none;">
-      <h1>ゲームオーバー</h1>
-      <div class="button-group">
-        <button id="btn-gameover-retry">リトライ</button>
-        <button id="btn-gameover-menu">メニューに戻る</button>
+      <div id="choices" class="choices">
+        <!-- 3択ボタンをJSで生成 -->
       </div>
     </div>
 
