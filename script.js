@@ -498,5 +498,5 @@ function showModal(message, withCancel=false){
     if (cancel) cancel.onclick = ()=>close(false);
   });
 }
-}
+
 
