@@ -31,11 +31,10 @@ let correctCount = 0;
 let power = 3;
 let modeType = 'fixed'; // 'fixed' or 'all'
 
-
 // 落下制御
 let animId = null;
 let fallStart = 0;
-let fallDuration = 5000;      // 1問の落下時間(ms) 基本5秒
+let fallDuration = 5000;      // 1問の落下時間(ms)
 let fallingY = -80;
 
 // DOM
@@ -66,12 +65,13 @@ function switchScreen(hide, show){
 }
 
 /* ---- メニューから開始 ---- */
-async function handleStartFromMenu(){　
-　const modeVal = document.getElementById('mode').value;
-　modeType = modeVal === 'all' ? 'all' : 'fixed';
-　correctCount = 0;
-　power = 3;
-　updatePowerDisplay();
+async function handleStartFromMenu(){
+  const modeVal = document.getElementById('mode').value;
+  modeType = modeVal === 'all' ? 'all' : 'fixed';
+  correctCount = 0;
+  power = 3;
+  updatePowerDisplay();
+
   const setKey = el('grade-set').value;
   const count = parseInt(el('mode').value,10);
   yomikakiMode = el('yomikaki').value; // 'kanji' or 'reading'
@@ -169,9 +169,9 @@ function nextQuestion(){
 }
 
 function buildChoices(){
-  // 正解候補を作る
+  // 正解候補
   const correctLabel = yomikakiMode === 'kanji' ? current.reading : current.kanji;
-  // 不正解候補を2つ作る（同じフィールドから）
+  // 不正解候補を2つ作成
   const pool = questionsAll.filter(q => q !== current);
   const shuffled = pool.sort(()=>Math.random()-0.5).slice(0, 10);
   const wrongs = [];
@@ -194,36 +194,36 @@ function buildChoices(){
 }
 
 function onChoose(btn, isCorrect){
-document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
-btn.classList.add('selected');
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
 
-if (isCorrect){
-  correctCount++;
-  falling.classList.add('falling-correct');
-  playSE('pinpon');
-  fireBeam(btn, falling, ()=>{
-    stopFalling();
+  if (isCorrect){
+    correctCount++;
+    falling.classList.add('falling-correct');
+    playSE('pinpon');
+    fireBeam(btn, falling, ()=>{
+      stopFalling();
+      setTimeout(()=>{
+        falling.classList.remove('falling-correct');
+        nextQuestion();
+      }, 400);
+    });
+  }else{
+    power--;
+    updatePowerDisplay();
+    playSE('bu');
+    btn.classList.add('incorrect');
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
     setTimeout(()=>{
-      falling.classList.remove('falling-correct');
-      nextQuestion();
+      btn.classList.remove('incorrect');
+      document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
     }, 400);
-  });
-}else{
-  power--;
-  updatePowerDisplay();
-  playSE('bu');
-  btn.classList.add('incorrect');
-  document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
-  setTimeout(()=>{
-    btn.classList.remove('incorrect');
-    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
-  }, 400);
-  if (power <= 0){
-    stopFalling();
-    showGameOver();
+    if (power <= 0){
+      stopFalling();
+      showGameOver();
+    }
   }
-}
-}
+} // ← 閉じカッコを追加
 
 /* ---- 落下アニメーション ---- */
 function resetFalling(){
@@ -233,29 +233,24 @@ function resetFalling(){
 }
 
 function startFalling(){
-  // 表示テキスト更新（落下してくるのは選択によって変わる）
   falling.textContent = yomikakiMode === 'kanji' ? current.kanji : current.reading;
   fallingY = -80;
   fallStart = performance.now();
-  const baseDuration = 5000;
-  // 問題数が多い場合は少し速く
-  const count = parseInt(el('mode').value,10);
   const difficulty = parseInt(document.getElementById('difficulty').value);
   fallDuration = 6000 - difficulty * 1000;
-
 
   animId = requestAnimationFrame(step);
   function step(now){
     const t = Math.min(1, (now - fallStart) / fallDuration);
     const fieldH = playfield.clientHeight;
-    const targetY = fieldH - 80 - 3 - 80; // 下線(line)の上まで（概算: 底から80pxライン + 表示高さ）
+    const targetY = fieldH - 160; 
     fallingY = -80 + (targetY + 80) * t;
     falling.style.top = `${fallingY}px`;
 
     if (t < 1){
       animId = requestAnimationFrame(step);
     }else{
-      // 間に合わなかった → 不正解として次へ
+      // 間に合わなかった場合
       playSE('bu');
       stopFalling();
       setTimeout(()=> nextQuestion(), 250);
@@ -271,7 +266,6 @@ function stopFalling(){
 
 /* ---- ビーム演出 ---- */
 function fireBeam(fromBtn, toEl, onEnd){
-  // from（ボタン） から to（落下テキスト）へ線を伸ばす
   const fromRect = fromBtn.getBoundingClientRect();
   const toRect = toEl.getBoundingClientRect();
 
@@ -300,7 +294,6 @@ function fireBeam(fromBtn, toEl, onEnd){
     if (t < 1){
       requestAnimationFrame(grow);
     }else{
-      // 命中後に消す
       setTimeout(()=>{
         beam.remove();
         if (onEnd) onEnd();
@@ -345,7 +338,6 @@ function makeResultTable(){
   const rec = buildCurrentRecord();
   const history = loadHistory();
   const merged = [rec, ...history];
-  // タイムが短い順で上位10件
   merged.sort((a,b)=>a.timeMs-b.timeMs);
   const top10 = merged.slice(0,10);
   saveHistory(top10);
@@ -356,7 +348,6 @@ function makeResultTable(){
 
 function showHistory(){
   const history = loadHistory();
-  // すでに短い順で保存されているが、念のため
   history.sort((a,b)=>a.timeMs-b.timeMs);
   document.getElementById('history-table-container').innerHTML = renderTable(history);
   switchScreen(menu, historyView);
@@ -425,5 +416,3 @@ function showModal(message, withCancel=false){
     cancel.onclick = ()=>close(false);
   });
 }
-}
-
