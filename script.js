@@ -214,21 +214,26 @@ function onChoose(btn, isCorrect){
         nextQuestion();
       }, 400);
     });
-  }else{
-    power--;
-    updatePowerDisplay();
-    playSE('bu');
-    btn.classList.add('incorrect');
-    document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
-    setTimeout(()=>{
-      btn.classList.remove('incorrect');
-      document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
-    }, 400);
+ }else{
+  power--;
+  updatePowerDisplay();
+  playSE('bu');
+  btn.classList.add('incorrect');
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
+
+  // 🔹 落下を即停止
+  stopFalling();
+
+  setTimeout(()=>{
+    btn.classList.remove('incorrect');
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
+
     if (power <= 0){
-      stopFalling();
       showGameOver();
+    } else {
+      nextQuestion();   // 🔹 間違えたらすぐ次の問題へ
     }
-  }
+  }, 400);
 }
 
 /* ---- 落下アニメーション ---- */
@@ -436,4 +441,5 @@ function showModal(message, withCancel=false){
     cancel.onclick = ()=>close(false);
   });
 }
+
 
