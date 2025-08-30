@@ -235,6 +235,8 @@ function onChoose(btn, isCorrect){
     }
   }, 400);
 }
+}
+
 
 /* ---- 落下アニメーション ---- */
 function resetFalling(){
@@ -441,5 +443,6 @@ function showModal(message, withCancel=false){
     cancel.onclick = ()=>close(false);
   });
 }
+
 
 
