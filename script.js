@@ -46,7 +46,7 @@ async function handleStartFromMenu() {
 
   try {
     const filename = FILE_MAP[setKey] || `${setKey}.json`;
-    const res = await fetch(`data/${filename}`);
+    const res = await fetch(`./data/${filename}`);
     if (!res.ok) throw new Error(`${filename} の読み込みに失敗しました`);
     const data = await res.json();
     questionsAll = Array.isArray(data) ? data : [];
@@ -312,3 +312,4 @@ function showModal(message, showCancel = false) {
         el('modal-cancel').onclick = () => { el('modal').style.display = 'none'; resolve(false); };
     });
 }
+
