@@ -223,6 +223,7 @@ if (isCorrect){
     showGameOver();
   }
 }
+}
 
 /* ---- 落下アニメーション ---- */
 function resetFalling(){
@@ -425,3 +426,4 @@ function showModal(message, withCancel=false){
   });
 }
 }
+
