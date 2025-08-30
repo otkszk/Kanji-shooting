@@ -95,9 +95,12 @@ async function handleStartFromMenu(){
     remaining = [...questionsInPlay];
 
     // UI初期化
-    el('btn-start').disabled = false;
-    el('btn-retry').disabled = true;
-    document.getElementById('timer').textContent = '0:00';
+    const btnStart = el('btn-start');
+    if (btnStart) btnStart.disabled = false;
+    const btnRetry = el('btn-retry');
+    if (btnRetry) btnRetry.disabled = true;
+    const timerEl = document.getElementById('timer');
+    if (timerEl) timerEl.textContent = '0:00';
     resetFalling();
 
     // 画面遷移
@@ -117,8 +120,10 @@ function startGameLogic(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  el('btn-start').disabled = true;
-  el('btn-retry').disabled = false;
+  const btnStart = el('btn-start');
+  if (btnStart) btnStart.disabled = true;
+  const btnRetry = el('btn-retry');
+  if (btnRetry) btnRetry.disabled = false;
 
   nextQuestion();
 }
@@ -136,8 +141,10 @@ function retryGame(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  el('btn-start').disabled = true;
-  el('btn-retry').disabled = false;
+  const btnStart = el('btn-start');
+  if (btnStart) btnStart.disabled = true;
+  const btnRetry = el('btn-retry');
+  if (btnRetry) btnRetry.disabled = false;
 
   nextQuestion();
 }
@@ -155,7 +162,8 @@ function updateTimer(){
   const ms = Date.now() - startTime;
   const m = Math.floor(ms/60000);
   const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-  el('timer').textContent = `${m}:${s}`;
+  const timerEl = el('timer');
+  if (timerEl) timerEl.textContent = `${m}:${s}`;
 }
 
 function nextQuestion(){
@@ -180,6 +188,7 @@ function buildChoices(){
   }
   const items = [correctLabel, ...wrongs].sort(()=>Math.random()-0.5);
 
+  if (!choices) return;
   choices.innerHTML = '';
   items.forEach((label)=>{
     const btn = document.createElement('button');
@@ -196,12 +205,12 @@ function onChoose(btn, isCorrect){
 
   if (isCorrect){
     correctCount++;
-    falling.classList.add('falling-correct');
+    if (falling) falling.classList.add('falling-correct');
     playSE('pinpon');
     fireBeam(btn, falling, ()=>{
       stopFalling();
       setTimeout(()=>{
-        falling.classList.remove('falling-correct');
+        if (falling) falling.classList.remove('falling-correct');
         nextQuestion();
       }, 400);
     });
@@ -224,16 +233,19 @@ function onChoose(btn, isCorrect){
 
 /* ---- 落下アニメーション ---- */
 function resetFalling(){
+  if (!falling) return;
   falling.textContent = '';
   falling.style.top = '-80px';
   fallingY = -80;
 }
 
 function startFalling(){
+  if (!falling || !playfield) return;
   falling.textContent = yomikakiMode === 'kanji' ? current.kanji : current.reading;
   fallingY = -80;
   fallStart = performance.now();
-  const difficulty = parseInt(document.getElementById('difficulty').value);
+  const diffEl = document.getElementById('difficulty');
+  const difficulty = diffEl ? parseInt(diffEl.value) : 3;
   fallDuration = 6000 - difficulty * 1000;
 
   animId = requestAnimationFrame(step);
@@ -270,6 +282,7 @@ function stopFalling(){
 
 /* ---- ビーム演出 ---- */
 function fireBeam(fromBtn, toEl, onEnd){
+  if (!fromBtn || !toEl) { if (onEnd) onEnd(); return; }
   const fromRect = fromBtn.getBoundingClientRect();
   const toRect = toEl.getBoundingClientRect();
 
@@ -314,7 +327,8 @@ function finishGame(){
 
   const m = Math.floor(totalMs/60000);
   const s = Math.floor((totalMs%60000)/1000).toString().padStart(2,'0');
-  el('final-time').textContent = `タイム: ${m}:${s}`;
+  const finalEl = el('final-time');
+  if (finalEl) finalEl.textContent = `タイム: ${m}:${s}`;
 
   makeResultTable();
   switchScreen(game, result);
@@ -347,13 +361,15 @@ function makeResultTable(){
   saveHistory(top10);
 
   const html = renderTable(top10);
-  document.getElementById('result-table-container').innerHTML = html;
+  const resultContainer = document.getElementById('result-table-container');
+  if (resultContainer) resultContainer.innerHTML = html;
 }
 
 function showHistory(){
   const history = loadHistory();
   history.sort((a,b)=>a.timeMs-b.timeMs);
-  document.getElementById('history-table-container').innerHTML = renderTable(history);
+  const histEl = document.getElementById('history-table-container');
+  if (histEl) histEl.innerHTML = renderTable(history);
   switchScreen(menu, historyView);
 }
 
@@ -376,47 +392,61 @@ function playSE(name){
 
 /* ---- パワー表示 ---- */
 function updatePowerDisplay(){
+  // ハートの文字は Unicode エスケープにしておく（環境によるパースエラー回避）
+  const RED_HEART = "\u2764\uFE0F";       // ❤️
+  const WHITE_HEART = "\uD83E\uDD0D";     // 🤍 (サロゲートペア)
+
   for (let i = 1; i <= 3; i++){
     const heart = document.getElementById(`heart${i}`);
+    if (!heart) continue;
     if (i <= power){
       heart.classList.remove('empty-heart');
-      heart.textContent = ❤️';
+      heart.textContent = RED_HEART;
     }else{
       heart.classList.add('empty-heart');
-      heart.textContent = '🤍';
+      heart.textContent = WHITE_HEART;
     }
   }
 }
 
 function showGameOver(){
-  document.getElementById('game-over').style.display = 'flex';
+  const go = document.getElementById('game-over');
+  if (go) go.style.display = 'flex';
 }
 
 function hideGameOver(){
-  document.getElementById('game-over').style.display = 'none';
+  const go = document.getElementById('game-over');
+  if (go) go.style.display = 'none';
 }
 
-document.getElementById('btn-retry').addEventListener('click', ()=>{
-  hideGameOver();
-  retryGame();
-});
-
-document.getElementById('btn-quit').addEventListener('click', ()=>{
-  hideGameOver();
-  switchScreen(game, menu);
-});
+// 安全にボタンイベントを登録（DOM 生成順の違いでエラーにならないように）
+const btnRetryElem = document.getElementById('btn-retry');
+if (btnRetryElem) {
+  btnRetryElem.addEventListener('click', ()=>{
+    hideGameOver();
+    retryGame();
+  });
+}
+const btnQuitElem = document.getElementById('btn-quit');
+if (btnQuitElem) {
+  btnQuitElem.addEventListener('click', ()=>{
+    hideGameOver();
+    switchScreen(game, menu);
+  });
+}
 
 /* ---- モーダル ---- */
 function showModal(message, withCancel=false){
   const modal = document.getElementById('modal');
   const ok = document.getElementById('modal-ok');
   const cancel = document.getElementById('modal-cancel');
-  document.getElementById('modal-message').textContent = message;
-  cancel.style.display = withCancel ? 'inline-block' : 'none';
-  modal.style.display = 'flex';
+  const msgEl = document.getElementById('modal-message');
+  if (msgEl) msgEl.textContent = message;
+  if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
+  if (modal) modal.style.display = 'flex';
   return new Promise(resolve=>{
-    const close = (val)=>{ modal.style.display='none'; ok.onclick=null; cancel.onclick=null; resolve(val); };
-    ok.onclick = ()=>close(true);
-    cancel.onclick = ()=>close(false);
+    const close = (val)=>{ if (modal) modal.style.display='none'; if (ok) ok.onclick=null; if (cancel) cancel.onclick=null; resolve(val); };
+    if (ok) ok.onclick = ()=>close(true);
+    if (cancel) cancel.onclick = ()=>close(false);
   });
 }
