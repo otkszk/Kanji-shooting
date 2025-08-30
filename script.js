@@ -27,10 +27,6 @@ let startTime = 0;
 let timerId = null;
 let totalMs = 0;
 let yomikakiMode = "kanji";   // 'kanji' or 'reading'
-let correctCount = 0;
-let power = 3;
-let modeType = 'fixed'; // 'fixed' or 'all'
-
 
 // 落下制御
 let animId = null;
@@ -66,12 +62,7 @@ function switchScreen(hide, show){
 }
 
 /* ---- メニューから開始 ---- */
-async function handleStartFromMenu(){　
-　const modeVal = document.getElementById('mode').value;
-　modeType = modeVal === 'all' ? 'all' : 'fixed';
-　correctCount = 0;
-　power = 3;
-　updatePowerDisplay();
+async function handleStartFromMenu(){
   const setKey = el('grade-set').value;
   const count = parseInt(el('mode').value,10);
   yomikakiMode = el('yomikaki').value; // 'kanji' or 'reading'
@@ -194,33 +185,18 @@ function buildChoices(){
 }
 
 function onChoose(btn, isCorrect){
-document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
-btn.classList.add('selected');
-
-if (isCorrect){
-  correctCount++;
-  falling.classList.add('falling-correct');
-  playSE('pinpon');
-  fireBeam(btn, falling, ()=>{
-    stopFalling();
-    setTimeout(()=>{
-      falling.classList.remove('falling-correct');
-      nextQuestion();
-    }, 400);
-  });
-}else{
-  power--;
-  updatePowerDisplay();
-  playSE('bu');
-  btn.classList.add('incorrect');
-  document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
-  setTimeout(()=>{
-    btn.classList.remove('incorrect');
-    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
-  }, 400);
-  if (power <= 0){
-    stopFalling();
-    showGameOver();
+  if (!current) return;
+  if (isCorrect){
+    playSE('pinpon');
+    fireBeam(btn, falling, ()=>{
+      stopFalling();
+      // 次の問題へ
+      setTimeout(()=> nextQuestion(), 350);
+    });
+  }else{
+    playSE('bu');
+    btn.classList.add('incorrect');
+    setTimeout(()=>btn.classList.remove('incorrect'), 350);
   }
 }
 
@@ -239,9 +215,7 @@ function startFalling(){
   const baseDuration = 5000;
   // 問題数が多い場合は少し速く
   const count = parseInt(el('mode').value,10);
-  const difficulty = parseInt(document.getElementById('difficulty').value);
-  fallDuration = 6000 - difficulty * 1000;
-
+  fallDuration = count >= 15 ? baseDuration - 800 : (count >= 10 ? baseDuration - 400 : baseDuration);
 
   animId = requestAnimationFrame(step);
   function step(now){
@@ -377,38 +351,6 @@ function renderTable(rows){
 function playSE(name){
   try{ new Audio(`sounds/${name}.mp3`).play(); }catch{}
 }
-
-/* ---- パワー表示 ---- */
-function updatePowerDisplay(){
-  for (let i = 1; i <= 3; i++){
-    const heart = document.getElementById(`heart${i}`);
-    if (i <= power){
-      heart.classList.remove('empty-heart');
-      heart.textContent = '❤️';
-    }else{
-      heart.classList.add('empty-heart');
-      heart.textContent = '🤍';
-    }
-  }
-}
-
-function showGameOver(){
-  document.getElementById('game-over').style.display = 'flex';
-}
-
-function hideGameOver(){
-  document.getElementById('game-over').style.display = 'none';
-}
-
-document.getElementById('btn-retry').addEventListener('click', ()=>{
-  hideGameOver();
-  retryGame();
-});
-
-document.getElementById('btn-quit').addEventListener('click', ()=>{
-  hideGameOver();
-  switchScreen(game, menu);
-});
 
 /* ---- モーダル ---- */
 function showModal(message, withCancel=false){
