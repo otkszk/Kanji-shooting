@@ -8,6 +8,7 @@
 </head>
 <body>
   <div id="app">
+    <!-- メニュー画面 -->
     <div id="menu" class="screen">
       <h1>全学年漢字まとめくん読みシューティング</h1>
       <img src="images/TOP.jpg" alt="トップ画像" class="top-image">
@@ -65,6 +66,7 @@
       </div>
     </div>
 
+    <!-- ゲーム画面 -->
     <div id="game" class="screen" style="display:none;">
       <header class="game-header">
         <div class="header-left">
@@ -83,18 +85,21 @@
       <div id="playfield">
         <div id="falling"></div>
         <div id="line"></div>
-        <div id="gameover" class="gameover" style="display:none;">
-          <h1>ゲームオーバー</h1>
-          <div class="button-group">
-            <button id="btn-gameover-retry">リトライ</button>
-            <button id="btn-gameover-menu">メニューに戻る</button>
-          </div>
-        </div>
       </div>
 
       <div id="choices" class="choices"></div>
     </div>
 
+    <!-- ゲームオーバー画面 -->
+    <div id="gameover" class="gameover" style="display:none;">
+      <h1>ゲームオーバー</h1>
+      <div class="button-group">
+        <button id="btn-gameover-retry">リトライ</button>
+        <button id="btn-gameover-menu">メニューに戻る</button>
+      </div>
+    </div>
+
+    <!-- 結果画面 -->
     <div id="result" class="screen" style="display:none;">
       <header class="result-header">
         <h2>結果</h2>
@@ -104,12 +109,14 @@
       <div id="result-table-container"></div>
     </div>
 
+    <!-- 履歴画面 -->
     <div id="history" class="screen" style="display:none;">
       <h2>過去の記録（タイムが短い順 上位10件）</h2>
       <div id="history-table-container"></div>
       <button id="btn-history-back">戻る</button>
     </div>
 
+    <!-- モーダル -->
     <div id="modal" class="modal">
       <div class="modal-content">
         <p id="modal-message"></p>

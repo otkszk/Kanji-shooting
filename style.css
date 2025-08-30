@@ -102,9 +102,9 @@ button:disabled{background:#c8c8c8;cursor:not-allowed;transform:none}
 
 .glow-hit{animation:glowhit .4s forwards}
 @keyframes glowhit{
-  0%{transform:scale(1) translateX(-50%);color:#000}
-  50%{transform:scale(1.3) translateX(-50%);color:red;text-shadow:0 0 8px rgba(255,0,0,.8)}
-  100%{opacity:0;transform:scale(0.6) translateX(-50%)}
+  0%{transform:scale(1);color:#000}
+  50%{transform:scale(1.3);color:red;text-shadow:0 0 8px rgba(255,0,0,.8)}
+  100%{opacity:0;transform:scale(0.6)}
 }
 
 .result-header{width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 2vw}
@@ -131,4 +131,4 @@ th{background:var(--bg)}
   color:#fff;
   text-shadow:0 0 10px #000;
 }
-.gameover h1{font-size:clamp(2.5rem,6vw,4rem);color:white;margin-bottom:1em}
+.gameover h1{font-size:clamp(2.5rem,6vw,4rem);margin-bottom:1em}
