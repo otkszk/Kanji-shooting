@@ -17,7 +17,8 @@ let power = 3;
 let isGameActive = false;
 let yomikakiMode = "kanji";
 
-const el = (id) => document.getElementById(id);
+const dataUrl = new URL(`data/${filename}`, window.location.href);
+    const res = await fetch(dataUrl);
 const menu = el('menu'), game = el('game'), result = el('result'), historyView = el('history');
 const playfield = el('playfield'), falling = el('falling'), lineEl = el('line'), choices = el('choices');
 const gameover = el('gameover');
@@ -312,4 +313,5 @@ function showModal(message, showCancel = false) {
         el('modal-cancel').onclick = () => { el('modal').style.display = 'none'; resolve(false); };
     });
 }
+
 
