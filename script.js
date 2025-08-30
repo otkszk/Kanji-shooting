@@ -85,10 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 「中断してメニューに戻る」ゲーム内ボタン（右上）
-  const btnQuitGame = el('btn-quit-game');
-  if (btnQuitGame) btnQuitGame.addEventListener('click', () => {
-    if (typeof quitGame === 'function') quitGame();
-    else {
+  const btnGameQuit = el('btn-game-quit');
+  if (btnGameQuit) btnGameQuit.addEventListener('click', async () => {
+    const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
+    if (ok) {
       if (timerId) clearInterval(timerId);
       if (animId) cancelAnimationFrame(animId);
       if (game && menu) switchScreen(game, menu);
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historyView && menu) switchScreen(historyView, menu);
   });
 
-  // ゲームオーバー用ボタン（HTML で btn-retry-over / btn-quit-over を使っている前提）
+  // ゲームオーバー用ボタン
   const btnRetryOver = el('btn-retry-over');
   if (btnRetryOver) btnRetryOver.addEventListener('click', () => {
     if (typeof hideGameOver === 'function') hideGameOver();
@@ -177,18 +177,6 @@ function startGameLogic(){
   if (el('btn-start')) el('btn-start').disabled = true;
   nextQuestion();
 }
-
-const btnGameQuit = document.getElementById('btn-quit-game');
-  if (btnGameQuit) {
-    btnGameQuit.addEventListener('click', async () => {
-      const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
-      if (ok) {
-        if (timerId) clearInterval(timerId);
-        if (animId) cancelAnimationFrame(animId);
-        switchScreen(game, menu);
-      }
-    });
-  }
 
 function retryGame(){
   power = 3;
@@ -275,7 +263,7 @@ function onChoose(btn, isCorrect){
     btn.classList.add('incorrect');
     document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
 
-    // 停止してから赤いビームを返す（from = falling, to = btn）
+    // 停止してから赤いビームを返す
     stopFalling(true);
     fireBeam(falling, btn, ()=>{
       setTimeout(()=>{
@@ -287,7 +275,7 @@ function onChoose(btn, isCorrect){
           nextQuestion();
         }
       }, 400);
-    }, false, true); // isCorrect=false, isReturn=true -> red beam
+    }, false, true);
   }
 }
 
@@ -339,9 +327,7 @@ function stopFalling(reset = true){
   if (reset) resetFalling();
 }
 
-/* ---- ビーム演出 ----
-   fireBeam(fromEl, toEl, onEnd, isCorrect=true, isReturn=false)
-*/
+/* ---- ビーム演出 ---- */
 function fireBeam(fromEl, toEl, onEnd, isCorrect = true, isReturn = false){
   if (!fromEl || !toEl){ if (onEnd) onEnd(); return; }
   const fromRect = fromEl.getBoundingClientRect();
@@ -468,40 +454,9 @@ function showGameOver(){
   const go = el('game-over');
   if (!go) return;
   go.style.display = 'flex';
-  go.style.color = 'white';
-  go.style.flexDirection = 'column';
-  go.style.alignItems = 'center';
-
-  const btnWrap = el('game-over-buttons');
-  if (btnWrap){
-    btnWrap.style.display = 'flex';
-    btnWrap.style.flexDirection = 'row';
-    btnWrap.style.justifyContent = 'center';
-    btnWrap.style.gap = '20px';
-  }
 }
 
 function hideGameOver(){
   const go = el('game-over');
   if (go) go.style.display = 'none';
 }
-
-/* ---- モーダル ---- */
-function showModal(message, withCancel=false){
-  const modal = el('modal');
-  const ok = el('modal-ok');
-  const cancel = el('modal-cancel');
-  const msgEl = el('modal-message');
-  if (msgEl) msgEl.textContent = message;
-  if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
-  if (modal) modal.style.display = 'flex';
-  return new Promise(resolve=>{
-    const close = (val)=>{ if (modal) modal.style.display='none'; if (ok) ok.onclick=null; if (cancel) cancel.onclick=null; resolve(val); };
-    if (ok) ok.onclick = ()=>close(true);
-    if (cancel) cancel.onclick = ()=>close(false);
-  });
-}
-
-
-
-
