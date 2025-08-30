@@ -178,14 +178,17 @@ function startGameLogic(){
   nextQuestion();
 }
 
-async function btn-quit-game(){
-  const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
-  if (ok){
-    if (timerId) clearInterval(timerId);
-    if (animId) cancelAnimationFrame(animId);
-    if (game && menu) switchScreen(game, menu);
+const btnGameQuit = document.getElementById('btn-quit-game');
+  if (btnGameQuit) {
+    btnGameQuit.addEventListener('click', async () => {
+      const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
+      if (ok) {
+        if (timerId) clearInterval(timerId);
+        if (animId) cancelAnimationFrame(animId);
+        switchScreen(game, menu);
+      }
+    });
   }
-}
 
 function retryGame(){
   power = 3;
@@ -498,6 +501,7 @@ function showModal(message, withCancel=false){
     if (cancel) cancel.onclick = ()=>close(false);
   });
 }
+
 
 
 
