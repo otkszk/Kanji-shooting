@@ -130,6 +130,9 @@ function startGameLogic(){
 }
 
 function retryGame(){
+    // 🔹 リトライ時にパワーをリセット
+  power = 3;
+  updatePowerDisplay();
   const count = parseInt(el('mode').value,10);
   const shuffled = [...questionsAll].sort(()=>Math.random()-0.5);
   questionsInPlay = shuffled.slice(0, count);
@@ -433,3 +436,4 @@ function showModal(message, withCancel=false){
     cancel.onclick = ()=>close(false);
   });
 }
+
