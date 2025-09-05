@@ -43,12 +43,8 @@ const el = (id) => document.getElementById(id);
 let menu = null, game = null, result = null, historyView = null;
 let playfield = null, falling = null, lineEl = null, choices = null;
 
-/* ----------------
-   ここではイベント登録の際に直接関数名を渡さず、
-   クリック時に関数の存在を確認してから呼ぶようにする（安全化）。
-   ---------------- */
+/* ---------------- イベント登録 ---------------- */
 document.addEventListener('DOMContentLoaded', () => {
-  // キャッシュ
   menu = el('menu');
   game = el('game');
   result = el('result');
@@ -58,64 +54,31 @@ document.addEventListener('DOMContentLoaded', () => {
   lineEl = el('line');
   choices = el('choices');
 
-  // 「はじめから」等のボタン（クリック時に関数があれば呼ぶ）
-  const btnStartFromMenu = el('btn-start-from-menu');
-  if (btnStartFromMenu) btnStartFromMenu.addEventListener('click', () => {
-    if (typeof handleStartFromMenu === 'function') handleStartFromMenu();
-    else console.warn('handleStartFromMenu not defined');
-  });
+  el('btn-start-from-menu')?.addEventListener('click', handleStartFromMenu);
+  el('btn-show-history')?.addEventListener('click', showHistory);
+  el('btn-start')?.addEventListener('click', startGameLogic);
+  el('btn-retry')?.addEventListener('click', retryGame);
 
-  const btnShowHistory = el('btn-show-history');
-  if (btnShowHistory) btnShowHistory.addEventListener('click', () => {
-    if (typeof showHistory === 'function') showHistory();
-    else {
-      console.warn('showHistory not defined - falling back to switch');
-      if (menu && historyView) switchScreen(menu, historyView);
-    }
-  });
-
-  const btnStart = el('btn-start');
-  if (btnStart) btnStart.addEventListener('click', () => {
-    if (typeof startGameLogic === 'function') startGameLogic();
-  });
-
-  const btnRetry = el('btn-retry');
-  if (btnRetry) btnRetry.addEventListener('click', () => {
-    if (typeof retryGame === 'function') retryGame();
-  });
-
-  // 「中断してメニューに戻る」ゲーム内ボタン（右上）
   const btnGameQuit = el('btn-game-quit');
   if (btnGameQuit) btnGameQuit.addEventListener('click', async () => {
     const ok = await showModal('ゲームを中断してメニューにもどりますか？', true);
     if (ok) {
       if (timerId) clearInterval(timerId);
       if (animId) cancelAnimationFrame(animId);
-      if (game && menu) switchScreen(game, menu);
+      switchScreen(game, menu);
     }
   });
 
-  const btnResultMenu = el('btn-result-menu');
-  if (btnResultMenu) btnResultMenu.addEventListener('click', () => {
-    if (result && menu) switchScreen(result, menu);
-  });
+  el('btn-result-menu')?.addEventListener('click', () => switchScreen(result, menu));
+  el('btn-history-back')?.addEventListener('click', () => switchScreen(historyView, menu));
 
-  const btnHistoryBack = el('btn-history-back');
-  if (btnHistoryBack) btnHistoryBack.addEventListener('click', () => {
-    if (historyView && menu) switchScreen(historyView, menu);
+  el('btn-retry-over')?.addEventListener('click', () => {
+    hideGameOver();
+    retryGame();
   });
-
-  // ゲームオーバー用ボタン
-  const btnRetryOver = el('btn-retry-over');
-  if (btnRetryOver) btnRetryOver.addEventListener('click', () => {
-    if (typeof hideGameOver === 'function') hideGameOver();
-    if (typeof retryGame === 'function') retryGame();
-  });
-
-  const btnQuitOver = el('btn-quit-over');
-  if (btnQuitOver) btnQuitOver.addEventListener('click', () => {
-    if (typeof hideGameOver === 'function') hideGameOver();
-    if (menu && game) switchScreen(game, menu);
+  el('btn-quit-over')?.addEventListener('click', () => {
+    hideGameOver();
+    switchScreen(game, menu);
   });
 });
 
@@ -127,15 +90,15 @@ function switchScreen(hide, show){
 
 /* ---- メニューから開始 ---- */
 async function handleStartFromMenu(){
-  const modeVal = el('mode') ? el('mode').value : '5';
-  modeType = modeVal === 'all' ? 'all' : 'fixed';
+  const modeVal = el('mode')?.value || '5';
+  modeType = (modeVal === 'ALL' || modeVal === 'all') ? 'all' : 'fixed';
   correctCount = 0;
   power = 3;
   updatePowerDisplay();
 
-  const setKey = el('grade-set') ? el('grade-set').value : '';
-  const count = parseInt(el('mode') ? el('mode').value : '5', 10);
-  yomikakiMode = el('yomikaki') ? el('yomikaki').value : 'kanji';
+  const setKey = el('grade-set')?.value || '';
+  const count = parseInt(modeVal, 10) || 5;
+  yomikakiMode = el('yomikaki')?.value || 'kanji';
 
   if (!setKey){
     await showModal('学年とセットを選んでください');
@@ -154,8 +117,8 @@ async function handleStartFromMenu(){
     questionsInPlay = (modeType === 'all') ? shuffled.slice() : shuffled.slice(0, count);
     remaining = [...questionsInPlay];
 
-    if (el('btn-start')) el('btn-start').disabled = false;
-    if (el('timer')) el('timer').textContent = '0:00';
+    el('btn-start').disabled = false;
+    el('timer').textContent = '0:00';
     resetFalling();
 
     switchScreen(menu, game);
@@ -174,7 +137,7 @@ function startGameLogic(){
   updateTimer();
   timerId = setInterval(updateTimer, 1000);
 
-  if (el('btn-start')) el('btn-start').disabled = true;
+  el('btn-start').disabled = true;
   nextQuestion();
 }
 
@@ -182,7 +145,7 @@ function retryGame(){
   power = 3;
   updatePowerDisplay();
 
-  const count = parseInt(el('mode') ? el('mode').value : '5', 10);
+  const count = parseInt(el('mode')?.value || '5', 10);
   const shuffled = [...questionsAll].sort(()=>Math.random()-0.5);
   questionsInPlay = (modeType === 'all') ? shuffled.slice() : shuffled.slice(0, count);
   remaining = [...questionsInPlay];
@@ -201,7 +164,7 @@ function updateTimer(){
   const ms = Date.now() - startTime;
   const m = Math.floor(ms/60000);
   const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-  if (el('timer')) el('timer').textContent = `${m}:${s}`;
+  el('timer').textContent = `${m}:${s}`;
 }
 
 /* ---- 問題の流れ ---- */
@@ -247,35 +210,36 @@ function onChoose(btn, isCorrect){
     correctCount++;
     if (falling) falling.classList.add('falling-correct');
     playSE('pinpon');
-    // 正解: ビームで当てる。正解時は falling の位置リセットをしない（ずれ防止）
     fireBeam(btn, falling, ()=>{
-      stopFalling(false); // reset=false → 位置を保つ
+      stopFalling(false);
       setTimeout(()=>{
         if (falling) falling.classList.remove('falling-correct');
         nextQuestion();
       }, 400);
     }, true, false);
   } else {
-    // 不正解: ダメージ演出、落下停止、赤い跳ね返りビーム、次の問題へ
     power--;
     updatePowerDisplay();
-    playSE('bu');
     btn.classList.add('incorrect');
     document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('damage'));
 
-    // 停止してから赤いビームを返す
-    stopFalling(true);
-    fireBeam(falling, btn, ()=>{
-      setTimeout(()=>{
-        btn.classList.remove('incorrect');
-        document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
-        if (power <= 0){
-          showGameOver();
-        } else {
-          nextQuestion();
-        }
-      }, 400);
-    }, false, true);
+    stopFalling(false);
+    // まず青ビーム（選択肢 → 落下文字）
+    fireBeam(btn, falling, ()=>{
+      // 次に赤ビーム（落下文字 → 選択肢）
+      fireBeam(falling, btn, ()=>{
+        playSE('bu');
+        setTimeout(()=>{
+          btn.classList.remove('incorrect');
+          document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('damage'));
+          if (power <= 0){
+            showGameOver();
+          } else {
+            nextQuestion();
+          }
+        }, 300);
+      }, false, true);
+    }, false, false);
   }
 }
 
@@ -307,7 +271,6 @@ function startFalling(){
     if (t < 1){
       animId = requestAnimationFrame(step);
     } else {
-      // time up: ダメージして次へ
       power--;
       updatePowerDisplay();
       playSE('bu');
@@ -376,7 +339,7 @@ function fireBeam(fromEl, toEl, onEnd, isCorrect = true, isReturn = false){
 function finishGame(){
   if (timerId) clearInterval(timerId);
   totalMs = Date.now() - startTime;
-  if (el('final-time')) el('final-time').textContent = `タイム: ${formatMs(totalMs)}`;
+  el('final-time').textContent = `タイム: ${formatMs(totalMs)}`;
 
   makeResultTable();
   switchScreen(game, result);
@@ -389,16 +352,14 @@ function formatMs(ms){
 }
 
 function buildCurrentRecord(){
-  const setLabel = el('grade-set') ? el('grade-set').options[el('grade-set').selectedIndex].text : '';
-  const yomikakiLabel = el('yomikaki') ? (el('yomikaki').value === 'kanji' ? 'かんじ' : 'よみがな') : '';
+  const setLabel = el('grade-set')?.options[el('grade-set').selectedIndex].text || '';
+  const yomikakiLabel = el('yomikaki')?.value === 'kanji' ? 'かんじ' : 'よみがな';
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   return { date: dateStr, yomikaki: yomikakiLabel, gradeSet: setLabel, timeMs: totalMs };
 }
 
-function loadHistory(){
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
+function loadHistory(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } }
 function saveHistory(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
 
 function makeResultTable(){
@@ -409,16 +370,14 @@ function makeResultTable(){
   const top10 = merged.slice(0,10);
   saveHistory(top10);
   const html = renderTable(top10);
-  const container = el('result-table-container');
-  if (container) container.innerHTML = html;
+  el('result-table-container').innerHTML = html;
 }
 
 function showHistory(){
   const historyArr = loadHistory() || [];
   historyArr.sort((a,b)=>a.timeMs - b.timeMs);
-  const container = el('history-table-container');
-  if (container) container.innerHTML = renderTable(historyArr);
-  if (menu && historyView) switchScreen(menu, historyView);
+  el('history-table-container').innerHTML = renderTable(historyArr);
+  switchScreen(menu, historyView);
 }
 
 function renderTable(rows){
@@ -430,9 +389,7 @@ function renderTable(rows){
 }
 
 /* ---- 効果音 ---- */
-function playSE(name){
-  try{ new Audio(`sounds/${name}.mp3`).play(); }catch{}
-}
+function playSE(name){ try{ new Audio(`sounds/${name}.mp3`).play(); }catch{} }
 
 /* ---- パワー表示 ---- */
 function updatePowerDisplay(){
@@ -450,13 +407,24 @@ function updatePowerDisplay(){
 function showGameOver(){
   if (timerId) clearInterval(timerId);
   if (animId) cancelAnimationFrame(animId);
-
   const go = el('game-over');
   if (!go) return;
   go.style.display = 'flex';
 }
+function hideGameOver(){ const go = el('game-over'); if (go) go.style.display = 'none'; }
 
-function hideGameOver(){
-  const go = el('game-over');
-  if (go) go.style.display = 'none';
+/* ---- モーダル ---- */
+function showModal(message, withCancel=false){
+  const modal = el('modal');
+  const ok = el('modal-ok');
+  const cancel = el('modal-cancel');
+  const msgEl = el('modal-message');
+  if (msgEl) msgEl.textContent = message;
+  if (cancel) cancel.style.display = withCancel ? 'inline-block' : 'none';
+  if (modal) modal.style.display = 'flex';
+  return new Promise(resolve=>{
+    const close = (val)=>{ modal.style.display='none'; ok.onclick=null; cancel.onclick=null; resolve(val); };
+    ok.onclick = ()=>close(true);
+    cancel.onclick = ()=>close(false);
+  });
 }
